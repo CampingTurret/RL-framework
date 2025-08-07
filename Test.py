@@ -7,8 +7,8 @@ seed = 1
 th.manual_seed(seed)
 random.seed(seed)
 np.random.seed(seed)
-env = TRL.UnityEnvAdapterVisCont("ML-env-No-Red/ML-env.exe",seed, 100)
-#env = TRL.UnityEnvAdapterVisCont(None)
+#env = TRL.UnityEnvAdapterVisCont("ML-env-No-Red/ML-env.exe",seed, 100)
+env = TRL.UnityEnvAdapterVisCont(None, seed, 100)
 names = set(env.behavior_name)
 
 class IPPOActor(nn.Module):
@@ -71,6 +71,6 @@ learner = TRL.Learner_IPPO(names, env.get_observation_space(), env.get_action_sp
 logger = TRL.Logger_Base()
 
 print("setting up trainer")
-trainer = TRL.Trainer_Basic(env, learner, logger)
+trainer = TRL.Trainer_OnPolicy(env, learner, logger)
 print("starting training")
 trainer.start()

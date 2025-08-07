@@ -59,7 +59,7 @@ class Learner_Base(ABC):
         pass
 
     @abstractmethod
-    def learn(self, batch, name = 'agent') -> float:
+    def learn(self, batch, name = 'agent') -> dict[str, float]:
         pass
 
 class Logger_Base(ABC):
@@ -73,7 +73,9 @@ class Logger_Base(ABC):
 
     def log_train_results(self, dict_:dict):
         for k, v in dict_.items():
-            print(f"{k} - length:{v['episode_length']} - return: {v['episode_reward']} - loss: {v['loss']}")
+            tmp = [f'{l}:{format(p, ".4g")}' for (l,p) in v.items()]
+            print(f'{k} -> ' + '-'.join(tmp))
+
 
 
 class Trainer_Base(ABC):
@@ -104,7 +106,7 @@ class Trainer_Base(ABC):
 
     
 
-class Trainer_Basic(Trainer_Base):
+class Trainer_OnPolicy(Trainer_Base):
 
     def __init__(self, env: Enviroment_Base, learner: Learner_Base, logger: Logger_Base):
         super().__init__(env, learner, logger)
@@ -121,7 +123,7 @@ class Trainer_Basic(Trainer_Base):
         transes = {x:TransitionBatch(self.env.max_len,self.batch_form(x)) for x in self.agents}
         infodict = {}
         for act in self.agents:
-            infodict[act] = {"episode_length":None, "episode_reward":None, "loss":None}
+            infodict[act] = {}
         done_main = False
         self.obs = self.env.reset()
         for x in range(self.env.max_len):
@@ -150,15 +152,8 @@ class Trainer_Basic(Trainer_Base):
         print("Ran")
         for act in self.agents:
             print(f"learning:{act}")
-            infodict[act]["loss"] = self.learner.learn(transes[act], act)
+            infodict[act].update(self.learner.learn(transes[act], act))
         self.logger.log_train_results(infodict)        
-
-        #obs = self.obs
-        #actions = self.learner.eval(obs)
-        #step_out = self.env.step(actions)
-        #new_obs = {k:v[0] for (k,v) in step_out.items()}
-        #self.obs.update(new_obs)
-        #self.learner.learn(step_out)
 
 #Needs Work
 class Learner_IPPO(Learner_Base):
@@ -170,13 +165,13 @@ class Learner_IPPO(Learner_Base):
     def __init__(self, names, obs_spec, action_spec, actor_network:th.nn.Module, critic_network:th.nn.Module) -> None:
         super().__init__(names, obs_spec, action_spec)
         p = {}
-        self.gamma = 0.95
-        self.offpolicy_iterations = 1
+        self.gamma = 0.99
+        self.offpolicy_iterations = 0
         self.grad_norm_clip = 1
         self.entropy_loss_param = 1
         self.ppo_clip_eps = 0.2
         self.lr = 1e-5
-        self.lrc = 1e-2
+        self.lrc = 1e-5
         self.actor = {
             agent: copy.deepcopy(actor_network) for agent in self.names
         }
@@ -238,6 +233,9 @@ class Learner_IPPO(Learner_Base):
         model.train(True)
         self.old_pi = None
         loss_sum = 0.0
+        avg_entropy = 0
+        avg_policy = 0
+        avg_value = 0
         for _ in range(1 + self.offpolicy_iterations):
             
             val = self.critic[name](batch['states'])
@@ -245,13 +243,12 @@ class Learner_IPPO(Learner_Base):
 
             pi = self.probabity(batch['states'], name)
             ratio = th.exp(pi.log_prob(batch['actions']).detach() - pi.log_prob(batch['actions']) ) if self.old_pi is None else th.exp((pi.log_prob(batch['actions']) - self.old_pi.log_prob(batch['actions'])))
+            policy = self._policy_loss(ratio, self._advantages(batch, val, next_val))
+            entropy = self._entropy_loss(pi)
+            loss = policy + self.entropy_loss_param * entropy
+            loss_c = self._value_loss(batch, val, next_val) 
             if self.old_pi is None:
-                loss = self._policy_loss(ratio, self._advantages(batch, val, next_val)) + self.entropy_loss_param * self._entropy_loss(pi)
-                loss_c = self._value_loss(batch, val, next_val) 
                 self.old_pi = th.distributions.Normal(pi.mean.detach(), pi.stddev.detach())
-            else:
-                loss = self._policy_loss(ratio, self._advantages(batch, val, next_val)) + self.entropy_loss_param * self._entropy_loss(pi)
-                loss_c = self._value_loss(batch, val, next_val) 
             # Backpropagate loss
             self.optims[name].zero_grad()
             self.optims_c[name].zero_grad()
@@ -260,8 +257,11 @@ class Learner_IPPO(Learner_Base):
             grad_norm = th.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
             self.optims[name].step()
             self.optims_c[name].step()
+            avg_entropy += entropy.item()
+            avg_policy += policy.item()
+            avg_value += loss_c.item()
             loss_sum += loss.item() + loss_c.item()
-        return loss_sum
+        return {"loss":loss_sum/(self.offpolicy_iterations+1), "entropy":avg_entropy/(self.offpolicy_iterations+1), "policy":avg_policy/(self.offpolicy_iterations+1), "value":avg_value/(self.offpolicy_iterations+1)}
 
 
 class GymEnvAdapterCont(Enviroment_Base):
