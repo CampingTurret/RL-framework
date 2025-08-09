@@ -8,6 +8,7 @@ import numpy as np
 import gym
 import copy
 from transition_batch import TransitionBatch
+import matplotlib.pyplot as plt
 
 class Enviroment_Base(ABC):
 
@@ -131,6 +132,12 @@ class Trainer_OnPolicy(Trainer_Base):
             step = self.env.step(actions)
             for act in step.keys():
                 obs, rewards, dones, infos = step[act]
+                img = (obs[0,:,:,:]*255).astype(np.int32)
+                print(img[:,0,0])
+                print(img[:,1,0])
+                print("Min:", img.min(), "Max:", img.max(), "Mean:", img.mean())
+                plt.imshow(img)
+                plt.show()
                 dic = {'actions': th.tensor(actions[act], dtype=th.float32),
                                   'states': th.tensor(self.obs[act], dtype=th.float32),
                                   'next_states': th.tensor(obs, dtype=th.float32),

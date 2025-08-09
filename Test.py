@@ -29,6 +29,8 @@ class IPPOActor(nn.Module):
             nn.ReLU(),
             nn.Flatten(),
             nn.Linear(128 * 8 * 8, 512),                 # → 8192 → 512
+            nn.ReLU(),
+            nn.Linear(512, 512),                 # → 512 → 512
             nn.ReLU()
         )
 
@@ -58,6 +60,8 @@ class IPPOCritic(nn.Module):
             nn.ReLU(),
             nn.Flatten(),
             nn.Linear(128 * 8 * 8, 512),                 # → 8192 → 512
+            nn.ReLU(),
+            nn.Linear(512, 512),                 # → 512 → 512
             nn.ReLU()
         )
         self.value_head = nn.Linear(512, 1)
