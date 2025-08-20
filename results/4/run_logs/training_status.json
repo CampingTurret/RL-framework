@@ -1,0 +1,69 @@
+{
+    "BlueAgent": {
+        "checkpoints": [
+            {
+                "steps": 499948,
+                "file_path": "results\\4\\BlueAgent\\BlueAgent-499948.onnx",
+                "reward": 343.3666666666667,
+                "creation_time": 1755535980.5425496,
+                "auxillary_file_paths": [
+                    "results\\4\\BlueAgent\\BlueAgent-499948.pt"
+                ]
+            },
+            {
+                "steps": 500064,
+                "file_path": "results\\4\\BlueAgent\\BlueAgent-500064.onnx",
+                "reward": 323.25,
+                "creation_time": 1755535983.3375835,
+                "auxillary_file_paths": [
+                    "results\\4\\BlueAgent\\BlueAgent-500064.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 500064,
+            "file_path": "results\\4\\BlueAgent.onnx",
+            "reward": 323.25,
+            "creation_time": 1755535983.3375835,
+            "auxillary_file_paths": [
+                "results\\4\\BlueAgent\\BlueAgent-500064.pt"
+            ]
+        }
+    },
+    "RedAgent": {
+        "checkpoints": [
+            {
+                "steps": 499948,
+                "file_path": "results\\4\\RedAgent\\RedAgent-499948.onnx",
+                "reward": 343.3666666666667,
+                "creation_time": 1755535980.8314543,
+                "auxillary_file_paths": [
+                    "results\\4\\RedAgent\\RedAgent-499948.pt"
+                ]
+            },
+            {
+                "steps": 500064,
+                "file_path": "results\\4\\RedAgent\\RedAgent-500064.onnx",
+                "reward": 323.25,
+                "creation_time": 1755535983.6717257,
+                "auxillary_file_paths": [
+                    "results\\4\\RedAgent\\RedAgent-500064.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 500064,
+            "file_path": "results\\4\\RedAgent.onnx",
+            "reward": 323.25,
+            "creation_time": 1755535983.6717257,
+            "auxillary_file_paths": [
+                "results\\4\\RedAgent\\RedAgent-500064.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "1.2.0.dev0",
+        "torch_version": "2.7.1+cu128"
+    }
+}
