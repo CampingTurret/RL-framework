@@ -57,16 +57,26 @@ class IPPOActor(nn.Module):
         z = self.Value_net(x)
         mu = self.mu_head(y)
         # check how Unity ML does it: 
+        mu = th.tanh(mu)
         sigma = th.exp(self.sigma_head(y)) 
+        sigma = th.maximum(sigma, th.tensor(5e-1))
         value = self.value_head(z)
         return mu, sigma, value
     
 
-    
-learner = TRL.Learner_IPPO(names, env.get_observation_space(), env.get_action_space(), IPPOActor(env))
+config = {
+    "gamma": 0.99,                
+    "offpolicy_iterations": 2,     
+    "grad_norm_clip": 1,           
+    "entropy_loss_param": 5.0e-1,  
+    "ppo_clip_eps": 0.2,          
+    "lr": 1e-5,                    
+    "value_param": 1               
+}
+learner = TRL.Learner_IPPO(names, env.get_observation_space(), env.get_action_space(), IPPOActor(env), config=config)
 logger = TRL.Logger_PPO()
 
 print("setting up trainer")
-trainer = TRL.Trainer_OnPolicy(env, learner, logger, runcount=10)
+trainer = TRL.Trainer_OnPolicy(env, learner, logger, runcount=5)
 print("starting training")
 trainer.start()

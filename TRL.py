@@ -221,16 +221,16 @@ class Learner_IPPO(Learner_Base):
     optims: dict[str, th.optim.Optimizer]
     batch: dict[str, TransitionBatch]
 
-    def __init__(self, names, obs_spec, action_spec, actor_network:th.nn.Module) -> None:
+    def __init__(self, names, obs_spec, action_spec, actor_network:th.nn.Module, config = {}) -> None:
         super().__init__(names, obs_spec, action_spec)
         p = {}
-        self.gamma = 0.99                 # same gamma
-        self.offpolicy_iterations = 2     # 0: That is not PPO  that is a3c :)   num_epoch - 1
-        self.grad_norm_clip = 1           # Not in Unity ML, but good practice acording to DRL professor
-        self.entropy_loss_param = 1.0e-2  # beta
-        self.ppo_clip_eps = 0.2           # same
-        self.lr = 1e-5                    # classic
-        self.value_param = 1              # Strength
+        self.gamma = config.get("gamma", 0.99)                                # same gamma
+        self.offpolicy_iterations = config.get("offpolicy_iterations", 2)     # 0: That is not PPO  that is a3c :)   num_epoch - 1
+        self.grad_norm_clip = config.get("grad_norm_clip", 1)                 # Not in Unity ML, but good practice acording to DRL professor
+        self.entropy_loss_param = config.get("entropy_loss_param", 1.0e-1)    # beta
+        self.ppo_clip_eps = config.get("ppo_clip_eps", 0.2)                   # same
+        self.lr = config.get("lr", 1e-5)                                      # classic
+        self.value_param = config.get("value_param", 1)                       # Strength
 
         self.actor = {
             agent: copy.deepcopy(actor_network) for agent in self.names
