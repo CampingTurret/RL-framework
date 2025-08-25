@@ -1,16 +1,10 @@
-import TRL 
+import TRL
+import os
+from pathlib import Path
+import matplotlib.pyplot as plt
 import torch as th
 import torch.nn as nn
-import random
-import numpy as np
-seed = random.randint(0,999)
-th.manual_seed(seed)
-random.seed(seed)
-np.random.seed(seed)
-print(seed)
-env = TRL.UnityEnvAdapterVisCont("ML-env/ML-env.exe",seed, 500)
-#env = TRL.UnityEnvAdapterVisCont(None, seed, 100)
-names = set(env.behavior_name)
+import pandas as pd
 
 class IPPOActor(nn.Module):
     def __init__(self, env: TRL.Enviroment_Base):
@@ -64,20 +58,33 @@ class IPPOActor(nn.Module):
         return mu, sigma, value
     
 
-config = {
-    "id" : 25,
-    "gamma": 0.99,                
-    "offpolicy_iterations": 2,     
-    "grad_norm_clip": 1,           
-    "entropy_loss_param": 5.0e-2,  
-    "ppo_clip_eps": 0.2,          
-    "lr": 1e-4,                    
-    "value_param": 1               
-}
-learner = TRL.Learner_IPPO(names, env.get_observation_space(), env.get_action_space(), IPPOActor(env), config=config)
-logger = TRL.Logger_PPO()
+pyrun_path = Path(__file__, '..','Pyruns')
+for id in os.listdir(pyrun_path):
+    fname_base = Path(__file__, '..','Pyruns', f'{id}')
+    dirls = os.listdir(fname_base)
+    x = 'final'
+    if 'final' not in dirls:
+        dirls.sort(key= lambda x: int(x), reverse=True)
+        x = dirls[0]
+    if x == 'final':
+        saved_dict = th.load(Path(__file__, '..','Pyruns', f'{id}', f'{x}', 'checkpoint_final.pkl' ), weights_only=False)
+    else: 
+        saved_dict = th.load(Path(__file__, '..','Pyruns', f'{id}', f'{x}', 'checkpoint.pkl' ), weights_only=False)
+    logger_data = saved_dict['logger'].dataframes
 
-print("setting up trainer")
-trainer = TRL.Trainer_OnPolicy(env, learner, logger, runcount=5)
-print("starting training")
-trainer.start()
+
+    ## Reward plots:
+    print(f'{id}:{x}:{logger_data}')
+    agent1 = next(iter(saved_dict['logger'].dataframes))
+    steps = logger_data[agent1]['env_step'].astype(float) 
+    mean = logger_data[agent1]['reward_mean'].astype(float)
+    std = logger_data[agent1]['reward_std'].astype(float)
+    plt.plot(steps, mean, label='Mean Reward', color='blue')
+    plt.fill_between(steps, mean - std, mean + std, color='blue', alpha=0.2, label='±1 Standard Deviation')
+    plt.xlabel('Environment Steps')
+    plt.ylabel('Reward')
+    plt.ylim(bottom=0)
+    plt.title('Shared Reward Mean ± Std Dev')
+    plt.legend()
+    plt.show()
+    print(f'{id}:{x}:{logger_data}')

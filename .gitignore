@@ -160,3 +160,4 @@ cython_debug/
 #.idea/
 ML-env-No-Red/ML-env_Data/ML-Agents/Timers/Easy_no_red_timers.json
 ML-env-No-Red/ML-env_Data/ML-Agents/Timers/Easy_no_red_timers.json
+*.pkl

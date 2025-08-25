@@ -11,6 +11,8 @@ from transition_batch import TransitionBatch
 from mlagents_envs import rpc_utils
 import matplotlib.pyplot as plt
 import pandas as pd
+from pathlib import Path
+import os
 
 class Enviroment_Base(ABC):
 
@@ -51,11 +53,12 @@ class Learner_Base(ABC):
     action_spec: dict
     gamma: float
 
-    def __init__(self, names, obs_spec, action_spec) -> None:
+    def __init__(self, names, obs_spec, action_spec, config = {}) -> None:
         super().__init__()
         self.names = names
         self.obs_spec = obs_spec
         self.action_spec = action_spec
+        self.config = config
 
     @abstractmethod
     def eval(self, obs) -> dict[str,np.ndarray]:
@@ -86,6 +89,10 @@ class Logger_Base(ABC):
     @property
     def env_step_count(self):
         return self.env_count
+    
+    @abstractmethod
+    def save_results(self):
+        pass
 
 class Logger_PPO(Logger_Base):
     def __init__(self) -> None:
@@ -121,17 +128,31 @@ class Logger_PPO(Logger_Base):
             print(row)
             self.dataframes[agent] = pd.concat([self.dataframes.get(agent, pd.DataFrame(columns=self.columns)), pd.DataFrame([row], columns=self.columns)], ignore_index=True)
         
-
+    def save_results(self):
+        pass
+    #def save_learner(self, learner, epoch, id):
+    #    fname_base = Path(__file__, 'Pyruns', f'{id}', f'{epoch}')
+    #    os.makedirs(fname_base)
+    #    fname = Path(fname_base, 'learner.pkl')
+    #    th.save(learner, fname)
+    #    fname = Path(fname_base, 'df.pkl')
+    #    th.save(self.dataframes, fname)
+    #
+    # def load_learner(self, epoch, id):
+    #    self.dataframes = th.load(Path(__file__, 'Pyruns', f'{id}', f'{epoch}', 'df.pkl'))
+    #    fname = Path(__file__, 'Pyruns', f'{id}', f'{epoch}', 'learner.pkl')
+    #    return th.load(fname)
 
 
 
 
 
 class Trainer_Base(ABC):
-    def __init__(self, env: Enviroment_Base, learner: Learner_Base, logger: Logger_Base):
+    def __init__(self, env: Enviroment_Base, learner: Learner_Base, logger: Logger_Base, runcount = 10):
         self.env = env
         self.learner = learner
         self.logger = logger
+        self.run_count = runcount
         self.obs_space = env.get_observation_space()
         self.act_space = env.get_action_space()
         p = set()
@@ -146,20 +167,38 @@ class Trainer_Base(ABC):
         self.obs = self.env.reset()
         while self.logger.env_count < max_env_step:
             self.train()
-    
+
+            config = self.learner.config
+            checkpoint = {
+                'learner': self.learner,
+                'logger': self.logger,
+                'run_count': self.run_count,
+            }
+            fname_base = Path(__file__, '..','Pyruns', f'{config.get("id", 0)}', f'{self.logger.env_step_count}')
+            os.makedirs(fname_base, exist_ok=True)
+            fname = Path(fname_base, 'checkpoint.pkl')
+            th.save(checkpoint, fname)
+        config = self.learner.config
+        checkpoint = {
+            'learner': self.learner,
+            'logger': self.logger,
+            'run_count': self.run_count,
+        }
+        fname_base = Path(__file__, '..','Pyruns', f'{config.get("id", 0)}', f'final')
+        os.makedirs(fname_base, exist_ok=True)
+        fname = Path(fname_base, 'checkpoint_final.pkl')
+        th.save(checkpoint, fname)
+        self.logger.save_results()
+        self.env.env.close()
 
     @abstractmethod
     def train(self):
         pass
 
-
-    
-
 class Trainer_OnPolicy(Trainer_Base):
 
     def __init__(self, env: Enviroment_Base, learner: Learner_Base, logger: Logger_Base, runcount = 10):
-        super().__init__(env, learner, logger)
-        self.run_count = runcount
+        super().__init__(env, learner, logger, runcount)
 
     def batch_form(self, name):
         return {'actions': (self.act_space[name]["shape"], th.float32),
@@ -212,9 +251,21 @@ class Trainer_OnPolicy(Trainer_Base):
         for act in self.agents:
             indict = self.learner.learn(transes_big[act], act)
             infodict[act].update(indict)
-        self.logger.log_train_results(infodict)        
+        self.logger.log_train_results(infodict) 
 
-#Needs Work
+    @staticmethod  
+    def load_from_checkpoint(env, config):
+        fname_base = Path(__file__, '..','Pyruns', f'{config.get("id", 0)}')
+        dirls = os.listdir(fname_base)
+        dirls.sort(key= lambda x: int(x), reverse=True)
+        print(dirls)
+        saved_dict = th.load(Path(__file__, '..','Pyruns', f'{config.get("id", 0)}', f'{dirls[0]}', 'checkpoint.pkl' ), weights_only=False)
+        print(saved_dict.keys())
+        learner = saved_dict['learner']
+        logger = saved_dict['logger']
+        runc = saved_dict['run_count']
+        return Trainer_OnPolicy(env, learner, logger, runc)
+
 class Learner_IPPO(Learner_Base):
 
     actor: dict[str, th.nn.Module]
@@ -222,7 +273,7 @@ class Learner_IPPO(Learner_Base):
     batch: dict[str, TransitionBatch]
 
     def __init__(self, names, obs_spec, action_spec, actor_network:th.nn.Module, config = {}) -> None:
-        super().__init__(names, obs_spec, action_spec)
+        super().__init__(names, obs_spec, action_spec, config = {})
         p = {}
         self.gamma = config.get("gamma", 0.99)                                # same gamma
         self.offpolicy_iterations = config.get("offpolicy_iterations", 2)     # 0: That is not PPO  that is a3c :)   num_epoch - 1
@@ -231,7 +282,7 @@ class Learner_IPPO(Learner_Base):
         self.ppo_clip_eps = config.get("ppo_clip_eps", 0.2)                   # same
         self.lr = config.get("lr", 1e-5)                                      # classic
         self.value_param = config.get("value_param", 1)                       # Strength
-
+        self.config = config
         self.actor = {
             agent: copy.deepcopy(actor_network) for agent in self.names
         }
@@ -320,7 +371,6 @@ class Learner_IPPO(Learner_Base):
             avg_value += loss_c.item()
             loss_sum += loss.item() + loss_c.item()
         return {"loss":loss_sum/(self.offpolicy_iterations+1), "entropy":avg_entropy/(self.offpolicy_iterations+1), "policy":avg_policy/(self.offpolicy_iterations+1), "value":avg_value/(self.offpolicy_iterations+1)}
-
 
 class GymEnvAdapterCont(Enviroment_Base):
     def __init__(self, env_id, max_len = 1000):
