@@ -230,14 +230,15 @@ class Trainer_OnPolicy(Trainer_Base):
                                     'next_states': th.tensor(obs, dtype=th.float32),
                                     'rewards': th.tensor(rewards, dtype=th.float32).reshape((1,1)),
                                     'dones': th.tensor(dones, dtype=th.bool).reshape((1,1))}
-                    transes[act].add(dic)
                     if np.any(dones) or x == (self.env.max_len - 1):
                         done_main = True
+                        dic[dones] = th.tensor([True], th.bool).reshape(1,1)
                         infodict[act]["episode_length"].append(transes[act].size)
                         infodict[act]["episode_reward"].append(th.sum(transes[act]['rewards']))
+                    transes[act].add(dic)
                     
                 self.obs = copy.deepcopy(next_obs)
-                if done_main or x == (self.env.max_len - 1):
+                if done_main:
                     for act in self.agents:
                         transes[act]['returns'][x] = transes[act]['rewards'][x]
                         for i in range(x - 1, - 1, -1):
@@ -278,7 +279,7 @@ class Learner_IPPO(Learner_Base):
         self.gamma = config.get("gamma", 0.99)                                # same gamma
         self.offpolicy_iterations = config.get("offpolicy_iterations", 2)     # 0: That is not PPO  that is a3c :)   num_epoch - 1
         self.grad_norm_clip = config.get("grad_norm_clip", 1)                 # Not in Unity ML, but good practice acording to DRL professor
-        self.entropy_loss_param = config.get("entropy_loss_param", 1.0e-1)    # beta
+        self.entropy_loss_param = config.get("entropy_loss_param", 1.0e-1)    # beta for ppo (not same as TRPO)
         self.ppo_clip_eps = config.get("ppo_clip_eps", 0.2)                   # same
         self.lr = config.get("lr", 1e-5)                                      # classic
         self.value_param = config.get("value_param", 1)                       # Strength
@@ -294,10 +295,13 @@ class Learner_IPPO(Learner_Base):
         masks = batch['dones'] # 1 if done, else 0
         T = rewards.size(0)
 
+        #split into episodes:
         deltas = rewards + self.gamma * next_values* ~masks  - values
         advantages = th.zeros_like(rewards)
         gae = 0.0
         for t in reversed(range(T)):
+            if masks[t] == True:
+                gae = 0.0
             gae = deltas[t] + self.gamma * lambda_ * ~masks[t] * gae
             advantages[t] = gae
 
