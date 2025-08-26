@@ -74,7 +74,6 @@ for id in os.listdir(pyrun_path):
 
 
     ## Reward plots:
-    print(f'{id}:{x}:{logger_data}')
     agent1 = next(iter(saved_dict['logger'].dataframes))
     steps = logger_data[agent1]['env_step'].astype(float) 
     mean = logger_data[agent1]['reward_mean'].astype(float)
