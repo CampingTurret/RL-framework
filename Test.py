@@ -65,11 +65,11 @@ class IPPOActor(nn.Module):
     
 
 config = {
-    "id" : 25,
+    "id" : 29,
     "gamma": 0.99,                
     "offpolicy_iterations": 2,     
     "grad_norm_clip": 1,           
-    "entropy_loss_param": 5.0e-2,  
+    "entropy_loss_param": -5.0e-4,  
     "ppo_clip_eps": 0.2,          
     "lr": 1e-4,                    
     "value_param": 1               

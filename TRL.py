@@ -232,14 +232,13 @@ class Trainer_OnPolicy(Trainer_Base):
                                     'dones': th.tensor(dones, dtype=th.bool).reshape((1,1))}
                     if np.any(dones) or x == (self.env.max_len - 1):
                         done_main = True
-                        dic[dones] = th.tensor([True], th.bool).reshape(1,1)
-                        infodict[act]["episode_length"].append(transes[act].size)
-                        infodict[act]["episode_reward"].append(th.sum(transes[act]['rewards']))
+                        dic['dones'] = th.tensor([True], dtype=th.bool).reshape((1,1))
                     transes[act].add(dic)
-                    
                 self.obs = copy.deepcopy(next_obs)
                 if done_main:
                     for act in self.agents:
+                        infodict[act]["episode_length"].append(transes[act].size)
+                        infodict[act]["episode_reward"].append(th.sum(transes[act]['rewards']))
                         transes[act]['returns'][x] = transes[act]['rewards'][x]
                         for i in range(x - 1, - 1, -1):
                             transes[act]['returns'][i] = transes[act]['rewards'][i] + self.learner.gamma * transes[act]['returns'][i + 1]
@@ -360,7 +359,7 @@ class Learner_IPPO(Learner_Base):
             policy = self._policy_loss(ratio, self._advantages(batch, val, next_val))
             entropy = self._entropy_loss(pi)
             #entropy = th.zeros_like(entropy, requires_grad=True)
-            loss = policy + self.entropy_loss_param * entropy
+            loss = policy - self.entropy_loss_param * entropy
             loss_c = self._value_loss(batch, val, next_val) 
             loss_total = loss + loss_c * self.value_param
             if self.old_pi is None:
