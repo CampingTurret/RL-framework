@@ -72,7 +72,12 @@ for id in os.listdir(pyrun_path):
         saved_dict = th.load(Path(__file__, '..','Pyruns', f'{id}', f'{x}', 'checkpoint.pkl' ), weights_only=False)
     logger_data = saved_dict['logger'].dataframes
 
-
+    config = saved_dict['learner'].config
+    save_path = Path(__file__, '..','Plots',id)
+    os.makedirs(save_path, exist_ok=True)
+    with open(Path(save_path, 'config.txt'), mode='w') as f:
+        for k,v in config.items():
+            f.write(f"{k}:{v}\n")
     ## Reward plots:
     agent1 = next(iter(saved_dict['logger'].dataframes))
     steps = logger_data[agent1]['env_step'].astype(float) 
@@ -85,5 +90,60 @@ for id in os.listdir(pyrun_path):
     plt.ylim(bottom=0)
     plt.title('Shared Reward Mean ± Std Dev')
     plt.legend()
-    plt.show()
+    plt.savefig(Path(save_path, 'reward_plot.png'))
+    plt.clf()
+
+    ## Entropy plots:
+    agent1 = next(iter(saved_dict['logger'].dataframes))
+    steps = logger_data[agent1]['env_step'].astype(float) 
+    for agent in saved_dict['logger'].dataframes:
+        entropy = logger_data[agent]['mean_entropy'].astype(float)
+        plt.plot(steps, entropy, label=agent)
+    plt.xlabel('Environment Steps')
+    plt.ylabel('Mean Entropy')
+    plt.title('Action Entropy')
+    plt.legend()
+    plt.savefig(Path(save_path, 'Entropy.png'))
+    plt.clf()
+
+
+    ## Loss plots:
+    agent1 = next(iter(saved_dict['logger'].dataframes))
+    steps = logger_data[agent1]['env_step'].astype(float) 
+    for agent in saved_dict['logger'].dataframes:
+        entropy = logger_data[agent]['mean_loss'].astype(float)
+        plt.plot(steps, entropy, label=agent)
+    plt.xlabel('Environment Steps')
+    plt.ylabel('Mean Loss')
+    plt.title('Loss')
+    plt.legend()
+    plt.savefig(Path(save_path, 'Loss.png'))
+    plt.clf()
+
+    ## Value loss plots:
+    agent1 = next(iter(saved_dict['logger'].dataframes))
+    steps = logger_data[agent1]['env_step'].astype(float) 
+    for agent in saved_dict['logger'].dataframes:
+        entropy = logger_data[agent]['mean_value_loss'].astype(float)
+        plt.plot(steps, entropy, label=agent)
+    plt.xlabel('Environment Steps')
+    plt.ylabel('Mean Value Loss')
+    plt.title('Value Loss')
+    plt.legend()
+    plt.savefig(Path(save_path, 'Value_Loss.png'))
+    plt.clf()
+
+    ## Policy Loss plots:
+    agent1 = next(iter(saved_dict['logger'].dataframes))
+    steps = logger_data[agent1]['env_step'].astype(float) 
+    for agent in saved_dict['logger'].dataframes:
+        entropy = logger_data[agent]['mean_policy_loss'].astype(float)
+        plt.plot(steps, entropy, label=agent)
+    plt.xlabel('Environment Steps')
+    plt.ylabel('Mean Policy Loss')
+    plt.title('Policy Loss')
+    plt.legend()
+    plt.savefig(Path(save_path, 'Policy_Loss.png'))
+    plt.clf()
+
     print(f'{id}:{x}:{logger_data}')

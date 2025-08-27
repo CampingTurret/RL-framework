@@ -272,7 +272,7 @@ class Learner_IPPO(Learner_Base):
     optims: dict[str, th.optim.Optimizer]
     batch: dict[str, TransitionBatch]
 
-    def __init__(self, names, obs_spec, action_spec, actor_network:th.nn.Module, config = {}) -> None:
+    def __init__(self, names, obs_spec, action_spec, actor_network:type, actor_args, config = {}) -> None:
         super().__init__(names, obs_spec, action_spec, config = {})
         p = {}
         self.gamma = config.get("gamma", 0.99)                                # same gamma
@@ -284,11 +284,12 @@ class Learner_IPPO(Learner_Base):
         self.value_param = config.get("value_param", 1)                       # Strength
         self.config = config
         self.actor = {
-            agent: copy.deepcopy(actor_network) for agent in self.names
+            agent: actor_network(*actor_args) for agent in self.names
         }
         self.optims = {
             agent:th.optim.Adam(self.actor[agent].parameters(), lr=self.lr) for agent in self.names
         }
+
     def _advantages(self, batch, values=None, next_values=None, lambda_=0.95):
         rewards = batch['rewards']
         masks = batch['dones'] # 1 if done, else 0
@@ -316,7 +317,8 @@ class Learner_IPPO(Learner_Base):
         return -th.minimum((advantages.detach() * ratio), advantages.detach() * th.clip(ratio, 1 - self.ppo_clip_eps, 1+self.ppo_clip_eps)).mean()
         
     def _value_loss(self, batch, values, next_values):
-        return ((batch['rewards'] + self.gamma * next_values * ~batch['dones'] - values)**2).mean()
+        #return ((batch['rewards'] + self.gamma * next_values * ~batch['dones'] - values)**2).mean()
+        return ((batch['returns'] - values)**2).mean()
 
     def _entropy_loss(self, pi):
         return pi.entropy().mean()
@@ -329,7 +331,7 @@ class Learner_IPPO(Learner_Base):
             std = out[1]
             mu = out[0]
             v = th.distributions.Normal(mu,std)
-            d.update({name:(th.tanh(v.sample())).detach().numpy()})
+            d.update({name:(v.sample()).detach().numpy()})
         return d
 
     def probabity(self, obs, name):
