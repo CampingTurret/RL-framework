@@ -146,4 +146,14 @@ for id in os.listdir(pyrun_path):
     plt.savefig(Path(save_path, 'Policy_Loss.png'))
     plt.clf()
 
+
+
+    ## saving dfs as csv's:
+    print(config)
+    save_path = Path(__file__, '..','Data',f'{config["entropy_loss_param"]}',f'{config["lr"]}', f'{config["offpolicy_iterations"]}', f'{config["value_param"]}')
+    os.makedirs(save_path, exist_ok=True)
+    
+    for agent in saved_dict['logger'].dataframes:
+        agent_name = agent.replace('?', '-').replace('=', '-')
+        saved_dict['logger'].dataframes[agent].to_csv(Path(save_path, f'{agent_name}_{config["id"]}.csv'), index=False)
     print(f'{id}:{x}:{logger_data}')
