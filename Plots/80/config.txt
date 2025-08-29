@@ -1,0 +1,8 @@
+id:80
+gamma:0.99
+offpolicy_iterations:2
+grad_norm_clip:1
+entropy_loss_param:0.005
+ppo_clip_eps:0.2
+lr:0.0001
+value_param:1
