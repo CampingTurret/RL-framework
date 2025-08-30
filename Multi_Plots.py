@@ -12,9 +12,9 @@ fig_entropy_blue, ax_entropy_blue = plt.subplots(figsize=(10, 6))
 fig_entropy_red, ax_entropy_red = plt.subplots(figsize=(10, 6))
 
 search_config = {               
-    "offpolicy_iterations": None,              
-    "entropy_loss_param": 5.0e-3   ,      #5.0e-3     
-    "lr": 1e-4 ,                #1e-5    
+    "offpolicy_iterations": 2,              
+    "entropy_loss_param":None   ,      #5.0e-3     
+    "lr": 1e-4  ,                #1e-5    
     "value_param": 1              
 }
 pre_ls = []
