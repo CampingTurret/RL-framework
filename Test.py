@@ -64,13 +64,13 @@ class IPPOActor(nn.Module):
     
 
 config = {
-    "id" : 37,
+    "id" : 89,
     "gamma": 0.99,                
-    "offpolicy_iterations": 2,     
+    "offpolicy_iterations": 4,     
     "grad_norm_clip": 1,           
     "entropy_loss_param": 5.0e-3,  
     "ppo_clip_eps": 0.2,          
-    "lr": 1e-6,                    
+    "lr": 1e-4,                    
     "value_param": 1               
 }
 learner = TRL.Learner_IPPO(names, env.get_observation_space(), env.get_action_space(), IPPOActor, tuple([env]), config=config)
