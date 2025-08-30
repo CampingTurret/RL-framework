@@ -12,9 +12,9 @@ fig_entropy_blue, ax_entropy_blue = plt.subplots(figsize=(10, 6))
 fig_entropy_red, ax_entropy_red = plt.subplots(figsize=(10, 6))
 
 search_config = {               
-    "offpolicy_iterations": 2,              
+    "offpolicy_iterations": None,              
     "entropy_loss_param": 5.0e-3   ,      #5.0e-3     
-    "lr": None,                #1e-5    
+    "lr": 1e-4 ,                #1e-5    
     "value_param": 1              
 }
 pre_ls = []
@@ -113,6 +113,7 @@ ax_entropy_blue.set_title('Blue Agent Entropy Comparison')
 ax_entropy_blue.set_xlabel('Environment Steps')
 ax_entropy_blue.set_ylabel('Entropy')
 ax_entropy_blue.legend()
+ax_entropy_blue.set_ylim(top=5)
 fig_entropy_blue.savefig(save_path / 'entropy_blue_comparison.png')
 plt.close(fig_entropy_blue)
 
@@ -120,6 +121,7 @@ plt.close(fig_entropy_blue)
 ax_entropy_red.set_title('Red Agent Entropy Comparison')
 ax_entropy_red.set_xlabel('Environment Steps')
 ax_entropy_red.set_ylabel('Entropy')
+ax_entropy_red.set_ylim(top=5)
 ax_entropy_red.legend()
 fig_entropy_red.savefig(save_path / 'entropy_red_comparison.png')
 plt.close(fig_entropy_red)
