@@ -3,7 +3,7 @@ import torch as th
 import numpy as np
 
 """
-The following class is taken from ac.ipnb by Prof. from the Deep Reinforcement Learning course. 
+The following class is taken from ac.ipnb by Prof. Wendelin Böhmer from the Deep Reinforcement Learning course. 
 """
 
 class TransitionBatch:
